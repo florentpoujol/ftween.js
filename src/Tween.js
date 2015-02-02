@@ -108,14 +108,22 @@ TWEEN.Tween = function ( object ) {
 	var _chainedTweens = [];
 	var _onStartCallback = null;
 	var _onStartCallbackFired = false;
-	var _onUpdateCallback = null
+	var _onUpdateCallback = null;
 	var _onPauseCallback = null;
 	var _onResumeCallback = null;
 	var _onCompleteCallback = null;
 	var _onStopCallback = null;
 	
 
-	this.to = function ( properties, duration ) {
+	this.from = function ( object ) {
+
+		_inputObject = object;
+
+		return this;
+
+	};
+
+	this.to = function ( object, duration ) {
 
 		if ( duration !== undefined ) {
 
@@ -123,9 +131,15 @@ TWEEN.Tween = function ( object ) {
 
 		}
 
-		_inputValuesEnd = properties;
+		_inputValuesEnd = object;
 
 		return this;
+
+	};
+
+	this.duration = function ( duration ) {
+
+		_duration = duration;
 
 	};
 
@@ -144,10 +158,10 @@ TWEEN.Tween = function ( object ) {
 		_pauseDuration = 0;
 
 		// init start values
-		var value;
+		var value, property;
 		_object = {};
 		_valuesStart = {};
-		for ( var property in _inputObject ) {
+		for ( property in _inputObject ) {
 
 			_object[ property ] = _inputObject[ property ];
 
@@ -155,16 +169,16 @@ TWEEN.Tween = function ( object ) {
 			if ( !isNaN( value ) ) {
 				
 				_valuesStart[ property ] = value;
+				_valuesStartRepeat[ property ] = _valuesStart[ property ] || 0;
 
 			}
 
-			_valuesStartRepeat[ property ] = _valuesStart[ property ] || 0;
 			
 		}
 
 		// init end values
 		_valuesEnd = {};
-		for ( var property in _inputValuesEnd ) {
+		for ( property in _inputValuesEnd ) {
 
 			_valuesEnd[ property ] = _inputValuesEnd[ property ];
 
@@ -224,6 +238,9 @@ TWEEN.Tween = function ( object ) {
 			_onPauseCallback.call( _object );
 
 		}
+
+		return this;
+
 	};
 
 	this.resume = function () {
@@ -239,6 +256,9 @@ TWEEN.Tween = function ( object ) {
 			_onResumeCallback.call( _object );
 
 		}
+
+		return this;
+
 	};
 
 	this.stopChainedTweens = function () {
@@ -248,6 +268,44 @@ TWEEN.Tween = function ( object ) {
 			_chainedTweens[ i ].stop();
 
 		}
+
+	};
+
+
+	/**
+	* Return all chained tweens
+	* @returns {Array}
+	*/
+	this.getChainedTweens = function () {
+
+		return _chainedTweens;
+
+	};
+
+	/**
+	* Remove one or several chained tweens.
+	* @param {TWEEN.Tween} [tween] The tween to remove. If null or undefined, all chained tweens will be removed.
+	* @returns {boolean} True if at least one tween has been removed, false otherwise.
+	*/
+	this.removeChainedTweens = function ( tween ) {
+
+		if ( tween !== null || tween !== undefined ) {
+			
+			var index = _chainedTweens.indexOf( tween );
+			if ( index !== -1 ) {
+
+				_chainedTweens.splice( index, 1 );
+				return true;
+
+			}
+
+			return false;
+
+		}
+
+		var count = _chainedTweens.length;
+		_chainedTweens = [];
+		return ( count > 0 );
 
 	};
 
