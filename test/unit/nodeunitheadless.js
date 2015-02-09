@@ -5,6 +5,6 @@ var getTests = require('./tests');
 
 module.exports = {
 	'tween': getTests(TWEEN_uncompressed),
-	'tween_min': getTests(TWEEN_min)
+	// 'tween_min': getTests(TWEEN_min)
 };
 

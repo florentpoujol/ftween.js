@@ -839,7 +839,123 @@
 				test.equal( TWEEN.getAll().length, 0 );
 				test.done();
 
-			}
+			},
+
+			"Test value as object": function(test) {
+				var obj = { x: { y: 0, z: 5 }, a: 0 };
+				var t = new TWEEN.Tween( obj )
+				.to( { x: { y: 10, z: "-2" }, a: 50 }, 1000 )
+				.start( 0 );
+
+				t.update( 100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, 4.8 );
+				test.equal( obj.a, 5 );
+
+				t.update( 500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 4 );
+				test.equal( obj.a, 25 );
+
+				t.update( 1000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, 3 );
+				test.equal( obj.a, 50 );
+
+				test.done();
+			},
+
+			"Test value as object, missing property or non tweened type": function(test) {
+				var f = function(){};
+				var o = {};
+				var obj = { x: {}, a: 0, f:f, o:o, b:true };
+				var t = new TWEEN.Tween( obj )
+				.to( { x: { y: 10, z: "-2" }, a: 50 }, 1000 )
+				.start( 0 );
+
+				t.update( 100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, -0.2 );
+				test.equal( obj.a, 5 );
+				test.equal( obj.f, f );
+				test.equal( obj.o, o );
+				test.equal( obj.b, true );
+
+				t.update( 500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, -1 );
+				test.equal( obj.a, 25 );
+				test.equal( obj.f, f );
+				test.equal( obj.o, o );
+				test.equal( obj.b, true );
+
+				t.update( 1000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, -2 );
+				test.equal( obj.a, 50 );
+				test.equal( obj.f, f );
+				test.equal( obj.o, o );
+				test.equal( obj.b, true );
+
+				test.done();
+			},
+
+			"Test value as object, repeat twice": function(test) {
+				var obj = { x: { y:0, z:5 }, a: 0 };
+				var t = new TWEEN.Tween( obj )
+				.to( { x: { y: 10, z: "-2" }, a: 50 }, 1000 )
+				.repeat( 2 )
+				.start( 0 );
+
+				t.update( 100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, 4.8 );
+				test.equal( obj.a, 5 );
+
+				t.update( 500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 4 );
+				test.equal( obj.a, 25 );
+				
+				t.update( 1000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, 3 );
+				test.equal( obj.a, 50 );
+
+
+				t.update( 1100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, 2.8 );
+				test.equal( obj.a, 5 );
+
+				t.update( 1500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 2 );
+				test.equal( obj.a, 25 );
+				
+				t.update( 2000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, 1 );
+				test.equal( obj.a, 50 );
+
+
+				t.update( 2100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, 0.8 );
+				test.equal( obj.a, 5 );
+
+				t.update( 2500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 0 );
+				test.equal( obj.a, 25 );
+				
+				t.update( 3000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, -1 );
+				test.equal( obj.a, 50 );
+				
+				test.done();
+			},
 
 		};
 

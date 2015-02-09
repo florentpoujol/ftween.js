@@ -87,14 +87,11 @@ var TWEEN = TWEEN || ( function () {
 
 TWEEN.Tween = function ( object ) {
 
-	var _inputObject = object;
-	var _object = {};
+	var _object = object;
 	var _valuesStart = {};
-	var _inputValuesEnd = {};
 	var _valuesEnd = {};
 	var _valuesStartRepeat = {};
 	var _duration = 1000;
-	var _inputRepeat = 0;
 	var _repeat = 0;
 	var _yoyo = false;
 	var _isPlaying = false;
@@ -117,7 +114,7 @@ TWEEN.Tween = function ( object ) {
 
 	this.from = function ( object ) {
 
-		_inputObject = object;
+		_object = object;
 
 		return this;
 
@@ -131,7 +128,7 @@ TWEEN.Tween = function ( object ) {
 
 		}
 
-		_inputValuesEnd = object;
+		_valuesEnd = object;
 
 		return this;
 
@@ -149,57 +146,71 @@ TWEEN.Tween = function ( object ) {
 		}
 
 		_isPlaying = true;
-		this.hasCompleted = false;
-
 		_onStartCallbackFired = false;
 
 		_startTime = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
 		_startTime += _delayTime;
 		_pauseDuration = 0;
 
-		// init start values
-		var value, property;
-		_object = {};
-		_valuesStart = {};
-		for ( property in _inputObject ) {
+		console.log("start tweener",_valuesStart, _object, _valuesEnd);
+		var value, property, nProperty, valueType;
+		for ( property in _valuesEnd ) {
 
-			_object[ property ] = _inputObject[ property ];
-
-			value = parseFloat( _inputObject[property], 10 );
-			if ( !isNaN( value ) ) {
-				
-				_valuesStart[ property ] = value;
-				_valuesStartRepeat[ property ] = _valuesStart[ property ] || 0;
-
-			}
-
-			
-		}
-
-		// init end values
-		_valuesEnd = {};
-		for ( property in _inputValuesEnd ) {
-
-			_valuesEnd[ property ] = _inputValuesEnd[ property ];
+			value = _valuesEnd[ property ];
+			valueType = typeof value;
 
 			// check if an Array was provided as property value
-			if ( _valuesEnd[ property ] instanceof Array ) {
+			if ( valueType === "array" ) {
 
-				if ( _valuesEnd[ property ].length === 0 ) {
+				if ( value.length === 0 ) {
 
 					continue;
 
 				}
 
 				// create a local copy of the Array with the start value at the front
-				_valuesEnd[ property ] = [ _inputObject[ property ] ].concat( _valuesEnd[ property ] );
+				_valuesEnd[ property ] = [ _object[ property ] ].concat( value );
+				_valuesStart[ property ] = _object[ property ];
+
+			}
+			else if ( value !== null && valueType === "object" ) {
+
+				if ( typeof _valuesStart[ property ] !== "object" ) {
+
+					_valuesStart[ property ] = {};
+
+				}
+
+				if ( typeof _object[ property ] !== "object" ) {
+
+					_object[ property ] = {};
+
+				}
+
+				for ( nProperty in _object[ property ] ) {
+
+					_valuesStart[ property ][ nProperty ] = _object[ property ][ nProperty ];
+
+				}
+
+			}
+			else {
+
+				_valuesStart[ property ] = _object[ property ];
+
+				if( valueType !== "array" && valueType !== "object" ) {
+
+					_valuesStart[ property ] *= 1.0; // Ensures we're using numbers, not strings
+
+				}
 
 			}
 
+			_valuesStartRepeat[ property ] = _valuesStart[ property ] || 0;
 
 		}
 
-		_repeat = _inputRepeat;
+		console.log("start tweener end",_valuesStart, _object, _valuesEnd);
 
 		return this;
 
@@ -318,7 +329,6 @@ TWEEN.Tween = function ( object ) {
 
 	this.repeat = function ( times ) {
 
-		_inputRepeat = times;
 		_repeat = times;
 		return this;
 
@@ -394,25 +404,29 @@ TWEEN.Tween = function ( object ) {
 
 	};
 
+	// returns true when the tween must be kept in the list of tweens to update
 	this.update = function ( time ) {
-
+		// console.log("update tweener", time, this);
 		if ( _isPaused ) {
 			
 			if ( _pauseStartTime === 0 ) {
+				// first update after tween is paused
+
 				_pauseStartTime = time;
+
 			}
 
 			return true;
 		} 
 		else if ( _pauseStartTime > 0 ) {
-			
+			// first update after tween is resumed
+
 			_pauseDuration += ( time - _pauseStartTime );
 			_pauseStartTime = 0;
 
 			return true;
 		}
 		
-		var property;
 
 		if ( time < _startTime ) {
 
@@ -435,34 +449,66 @@ TWEEN.Tween = function ( object ) {
 		var elapsed = ( time - ( _startTime + _pauseDuration ) ) / _duration;
 		elapsed = elapsed > 1 ? 1 : elapsed;
 
-		var value = _easingFunction( elapsed );
-		for ( property in _valuesEnd ) {
+		var progression = _easingFunction( elapsed );
 
-			var start = _valuesStart[ property ] || 0;
-			var end = _valuesEnd[ property ];
+		var getCurrentValue = function( start, end ) {
 
-			if ( end instanceof Array ) {
-
-				_object[ property ] = _interpolationFunction( end, value );
-
-			} else {
+			if ( typeof end === "string" ) {
 
 				// Parses relative end values with start as base (e.g.: +10, -3)
-				if ( typeof(end) === "string" ) {
-					end = start + parseFloat(end, 10);
-				}
+				end = start + parseFloat( end, 10 );
+
+			}
+
+			if ( typeof end === "number" ) {
 
 				// protect against non numeric properties.
-				if ( typeof(end) === "number" ) {
-					_object[ property ] = start + ( end - start ) * value;
-				}
+				return start + ( end - start ) * progression;
 
+			}
+
+		};
+
+		var property, nProperty, start, _start, end, _start, valueType;
+		console.log("update tweener", _valuesStart, _object, _valuesEnd, progression, elapsed);
+
+		for ( property in _valuesEnd ) {
+
+			start = _valuesStart[ property ] || 0;
+			end = _valuesEnd[ property ];
+			valueType = typeof end;
+
+			if ( valueType === "array" ) {
+
+				_object[ property ] = _interpolationFunction( end, progression );
+
+			}
+			else if ( end !== null && valueType === "object") {
+
+				for ( nProperty in end ) {
+
+					_start = start[ nProperty ] || 0;
+					// console.log("end", end, nProperty, end[ nProperty ]);
+					_end = end[ nProperty ];
+					_object[ property ][ nProperty ] = getCurrentValue( _start, _end );
+					console.log( "object value", property, nProperty, _start, _valuesStart, _end, _valuesEnd);
+
+				}
+			}
+			else if ( valueType === "number" || valueType === "string" ) {
+				
+				_object[ property ] = getCurrentValue( start, end );
+				// will be set to null is start or end are of any other type than string or number
+				console.log( "num value", property, start, end, progression, getCurrentValue( start, end ));
 			}
 
 		}
 
+		console.log("update tweener 2", _object);
+
+
 		if ( _onUpdateCallback !== null ) {
-			_onUpdateCallback.call( _object, value );
+			_onUpdateCallback.call( _object, progression );
 
 		}
 
@@ -475,19 +521,42 @@ TWEEN.Tween = function ( object ) {
 				}
 
 				// reassign starting values, restart by making startTime = now
-				for( property in _valuesStartRepeat ) {
+				console.log( "repeat", _valuesStartRepeat, _valuesStart, _object, _valuesEnd );
+				for( property in _valuesStart ) {
 
-					if ( typeof( _valuesEnd[ property ] ) === "string" ) {
-						_valuesStartRepeat[ property ] = _valuesStartRepeat[ property ] + parseFloat(_valuesEnd[ property ], 10);
+					value = _valuesEnd[ property ];
+					valueType = typeof value;
+					if ( valueType === "string" ) {
+
+						// _valuesStartRepeat[ property ] = _valuesStartRepeat[ property ] + parseFloat( _valuesEnd[ property ], 10 );
+						_valuesStart[ property ] = _object[ property ];
+
+					}
+					else if ( value !== null && valueType === "object" ) {
+
+						for ( nProperty in value ) {
+
+							nValue = value[ nProperty ];
+							if ( typeof nValue === "string" ) {
+
+								_valuesStart[ property ][ nProperty ] = _object[ property ][ nProperty ];
+
+							}
+
+						}
 					}
 
-					if (_yoyo) {
-						var tmp = _valuesStartRepeat[ property ];
+					if ( _yoyo ) {
+
+						/*var tmp = _valuesStartRepeat[ property ];
 						_valuesStartRepeat[ property ] = _valuesEnd[ property ];
-						_valuesEnd[ property ] = tmp;
+						_valuesEnd[ property ] = tmp;*/
+						_valuesEnd[ property ] = _valuesStart[ property ];
+						_valuesStart[ property ] = _object[ property ];
+
 					}
 
-					_valuesStart[ property ] = _valuesStartRepeat[ property ];
+					// _valuesStart[ property ] = _valuesStartRepeat[ property ];
 
 				}
 
