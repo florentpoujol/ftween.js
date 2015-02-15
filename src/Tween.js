@@ -85,8 +85,11 @@ var TWEEN = TWEEN || ( function () {
 
 } )();
 
+var EventEmitter = require("events").EventEmitter;
+
 TWEEN.Tween = function ( object ) {
 
+	var _eventEmitter = new EventEmitter();
 	var _object = object;
 	var _valuesStart = {};
 	var _valuesEnd = {};
@@ -110,6 +113,7 @@ TWEEN.Tween = function ( object ) {
 	var _onResumeCallback = null;
 	var _onCompleteCallback = null;
 	var _onStopCallback = null;
+	var _callbackNames = [ "onStart", "onUpdate", "onComplete", "onStop", "onPause", "onResume" ];
 	
 
 	this.from = function ( object ) {
@@ -231,6 +235,8 @@ TWEEN.Tween = function ( object ) {
 
 		}
 
+		_eventEmitter.emit( "onStop", _object );
+
 		this.stopChainedTweens();
 		return this;
 
@@ -250,6 +256,8 @@ TWEEN.Tween = function ( object ) {
 
 		}
 
+		_eventEmitter.emit( "onPause", _object );
+
 		return this;
 
 	};
@@ -267,6 +275,8 @@ TWEEN.Tween = function ( object ) {
 			_onResumeCallback.call( _object );
 
 		}
+
+		_eventEmitter.emit( "onResume", _object );
 
 		return this;
 
@@ -363,6 +373,43 @@ TWEEN.Tween = function ( object ) {
 
 	};
 
+	this.addListener = function( eventName, listener ) {
+		
+		_eventEmitter.addListener( eventName, listener );
+
+	};
+
+	this.on = function( eventName, listener ) {
+
+		if ( eventName in _callbackNames === false ) {
+
+			// assume eventName is like "update" instead of "onUpdate"
+			eventName = "on" + eventName.charAt(0).toUpperCase() + eventName.slice(1);
+
+		}
+
+		this.addListener( eventName, listener );
+
+	};
+
+	this.removeListener = function( eventName, listener ) {
+		
+		_eventEmitter.removeListener( eventName, listener );
+
+	};
+
+	this.off = function( eventName, listener ) {
+
+		if ( eventName in _callbackNames === false ) {
+
+			eventName = "on" + eventName.charAt(0).toUpperCase() + eventName.slice(1);
+			
+		}
+
+		this.removeListener( eventName, listener );
+
+	};
+
 	this.onStart = function ( callback ) {
 		_onStartCallback = callback;
 		return this;
@@ -442,6 +489,8 @@ TWEEN.Tween = function ( object ) {
 
 			}
 
+			_eventEmitter.emit( "onStart", _object );
+
 			_onStartCallbackFired = true;
 
 		}
@@ -469,7 +518,7 @@ TWEEN.Tween = function ( object ) {
 
 		};
 
-		var property, nProperty, start, _start, end, _start, valueType;
+		var property, nProperty, start, _start, end, valueType;
 		console.log("update tweener", _valuesStart, _object, _valuesEnd, progression, elapsed);
 
 		for ( property in _valuesEnd ) {
@@ -508,9 +557,12 @@ TWEEN.Tween = function ( object ) {
 
 
 		if ( _onUpdateCallback !== null ) {
+
 			_onUpdateCallback.call( _object, progression );
 
 		}
+
+		_eventEmitter.emit( "onUpdate", _object, progression );
 
 		if ( elapsed == 1 ) {
 
@@ -521,7 +573,7 @@ TWEEN.Tween = function ( object ) {
 				}
 
 				// reassign starting values, restart by making startTime = now
-				console.log( "repeat", _valuesStartRepeat, _valuesStart, _object, _valuesEnd );
+				// console.log( "repeat", _valuesStartRepeat, _valuesStart, _object, _valuesEnd );
 				for( property in _valuesStart ) {
 
 					value = _valuesEnd[ property ];
@@ -572,6 +624,8 @@ TWEEN.Tween = function ( object ) {
 					_onCompleteCallback.call( _object );
 
 				}
+
+				_eventEmitter.emit( "onComplete", _object );
 
 				for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
 
