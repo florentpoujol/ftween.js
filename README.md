@@ -1,14 +1,61 @@
-# tween.js (r15dev) [![Travis tests](https://travis-ci.org/sole/tween.js.svg?branch=master)](https://travis-ci.org/sole/tween.js)
+# superpowes-tween.js [![Travis tests](https://travis-ci.org/florentpoujol/tween.js.svg?branch=master)](https://travis-ci.org/florentpoujol/tween.js)
 
-**JavaScript tweening engine for easy animations**
+**JavaScript tweening engine for easy animations**  
 
-[![Install with NPM](https://nodei.co/npm/tween.js.png?downloads=true&stars=true)](https://nodei.co/npm/tween.js/)
-
-[![Flattr this](https://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/thing/45014/tween-js)
+[![Install with NPM](https://nodei.co/npm/tween.js.png?downloads=true&stars=true)](https://nodei.co/npm/superpowers-tween.js/)
 
 Super simple, fast and easy to use tweening engine which incorporates optimised Robert Penner's equations.
 
-[Contributors](http://github.com/sole/tween.js/contributors)
+## Changes from the original tween.js
+
+superpowers-tween.js is a fork of Soledad Penadés' popular tween.js library.  
+It has been created to power the fTween plugin for the Superpowers HTML5 game engine.  
+
+The following functionalities have been added:
+
+- `from()` function. Passing the `from` object to the constructor is not mandatory anymore.
+
+- `duration()` function.
+
+- The tweened properties in the `from` object may be objects that contain numbers (typically like Vector3), in addition to numbers.
+
+- The properties' values inside these nested objects in the `to` object may be numbers, strings or arrays.
+
+- The properties in the `to` object may be dynamic. It means that their name may match the name of a couple of getter/setter functions (on the `from` object) which name begins by "get" or "set" and have the next letter uppercase. Ie: the `position` property will call the `getPosition()` and `setPosition()` functions.
+
+- Pause/resume a tween: `pause()`, `onPause( fn )`, `resume()`, `onResume( fn )`, `isPaused()` (returns the paused state).
+
+- Relative tween: passing `true` to the `isRelative()` function (default is `false`) will consider number values in the `to` object as relative (in addition to string values that are always considered relative).
+
+```javascript
+	var MyObject = function( position ) {
+		var _position = position || { x:0, y:0, z:0 };
+
+		this.getPosition = function() {
+			return _position;
+		};
+		this.setPosition = function( position ) {
+			_position = position;
+		};
+	};
+
+	var myInstance = new MyObject( { x:-5, y:-5, z:-5 } );
+
+	var tween = new TWEEN.Tween()
+	.from( myInstance )
+	.to( { position: { x: 10, y: 5 } } )
+	.isRelative( true )
+	.duration( 5000 )
+	.onUpdate( function() {
+		console.log( "New position is: ", this.getPosition() );
+	} )
+	.start();
+
+	// This will tween the position from {-5,-5,-5} to {5,0,-5}.
+```
+
+
+[Contributors](http://github.com/tweenjs/tween.js/contributors)
 
 ## Examples
 

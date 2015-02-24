@@ -85,933 +85,1022 @@ var TWEEN = TWEEN || ( function () {
 
 } )();
 
-var EventEmitter = require("events").EventEmitter;
-
 TWEEN.Tween = function ( object ) {
 
-	var _eventEmitter = new EventEmitter();
-	var _object = object;
-	var _valuesStart = {};
-	var _valuesEnd = {};
-	var _valuesStartRepeat = {};
-	var _duration = 1000;
-	var _repeat = 0;
-	var _yoyo = false;
-	var _isPlaying = false;
-	var _delayTime = 0;
-	var _startTime = null;
-	var _isPaused = false;
-	var _pauseDuration = 0;
-	var _pauseStartTime = 0;
-	var _easingFunction = TWEEN.Easing.Linear.None;
-	var _interpolationFunction = TWEEN.Interpolation.Linear;
-	var _chainedTweens = [];
-	var _onStartCallback = null;
-	var _onStartCallbackFired = false;
-	var _onUpdateCallback = null;
-	var _onPauseCallback = null;
-	var _onResumeCallback = null;
-	var _onCompleteCallback = null;
-	var _onStopCallback = null;
-	var _callbackNames = [ "onStart", "onUpdate", "onComplete", "onStop", "onPause", "onResume" ];
-	
+  var _object = object || {};
+  var _valuesStart = {};
+  var _valuesEnd = {};
+  var _valuesStartRepeat = {};
+  var _duration = 1000;
+  var _isRelative = false;
+  var _repeat = 0;
+  var _yoyo = false;
+  var _isPlaying = false;
+  var _delayTime = 0;
+  var _startTime = null;
+  var _isPaused = false;
+  var _pauseDuration = 0;
+  var _pauseStartTime = 0;
+  var _easingFunction = TWEEN.Easing.Linear.None;
+  var _interpolationFunction = TWEEN.Interpolation.Linear;
+  var _chainedTweens = [];
+  var _onStartCallback = null;
+  var _onStartCallbackFired = false;
+  var _onPauseCallback = null;
+  var _onResumeCallback = null;
+  var _onUpdateCallback = null;
+  var _onCompleteCallback = null;
+  var _onStopCallback = null;
 
-	this.from = function ( object ) {
+  this.test = false;
 
-		_object = object;
+  // reset in start()
+  // filled in _setupDynamicProperty()
+  // keys are property name, values are object with getter and setter properties
+  var _accessorsByProperties = {};
 
-		return this;
+  // called from start()
+  var _setupDynamicProperty = function( property ) {
 
-	};
+    if ( _object[ property ] === undefined ) {
+      
+      var ucProperty = property.charAt(0).toUpperCase() + property.slice(1);
+      var getter = _object[ "get"+ucProperty ];
+      var setter = _object[ "set"+ucProperty ];
 
-	this.to = function ( object, duration ) {
+      if ( typeof getter === "function" && typeof setter === "function" ) {
+        _accessorsByProperties[ property ] = { getter: getter, setter: setter };
+      }
 
-		if ( duration !== undefined ) {
+    }
 
-			_duration = duration;
+  };
 
-		}
+  // called from start() and update()
+  var _getObjectValue = function( property ) {
+    if (this.test) console.log("getobjectvalue", property, _accessorsByProperties[ property ]);
 
-		_valuesEnd = object;
+    if ( _accessorsByProperties[ property ] !== undefined ) {
+      return _accessorsByProperties[ property ].getter.call( _object );
+    }
+    
+    else {
+      return _object[ property ];
+    }
 
-		return this;
+  };
+  
+  // called from start() and update()
+  var _setObjectValue = function( property, value ) {
 
-	};
+    if (this.test) console.log("setobjectvalue", property, value, _accessorsByProperties[ property ]);
+    
+    if ( _accessorsByProperties[ property ] !== undefined ) {
+      if (this.test) console.log("set", property, value);
+      _accessorsByProperties[ property ].setter.call( _object, value );
+    }
 
-	this.duration = function ( duration ) {
+    else {
+      _object[ property ] = value;
+    }
 
-		_duration = duration;
+  };
 
-	};
 
-	this.start = function ( time ) {
-		if ( ! ( this in TWEEN.getAll() ) ) {
-			TWEEN.add( this );
-		}
+  this.from = function ( object ) {
 
-		_isPlaying = true;
-		_onStartCallbackFired = false;
+    _object = object;
 
-		_startTime = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
-		_startTime += _delayTime;
-		_pauseDuration = 0;
+    return this;
 
-		console.log("start tweener",_valuesStart, _object, _valuesEnd);
-		var value, property, nProperty, valueType;
-		for ( property in _valuesEnd ) {
+  };
 
-			value = _valuesEnd[ property ];
-			valueType = typeof value;
+  this.to = function ( object, duration ) {
 
-			// check if an Array was provided as property value
-			if ( valueType === "array" ) {
+    if ( duration !== undefined ) {
 
-				if ( value.length === 0 ) {
+      _duration = duration;
 
-					continue;
+    }
 
-				}
+    _valuesEnd = object;
 
-				// create a local copy of the Array with the start value at the front
-				_valuesEnd[ property ] = [ _object[ property ] ].concat( value );
-				_valuesStart[ property ] = _object[ property ];
+    return this;
 
-			}
-			else if ( value !== null && valueType === "object" ) {
+  };
 
-				if ( typeof _valuesStart[ property ] !== "object" ) {
+  this.duration = function ( duration ) {
 
-					_valuesStart[ property ] = {};
+    _duration = duration;
+    return this;
 
-				}
+  };
 
-				if ( typeof _object[ property ] !== "object" ) {
+  this.isRelative = function ( isRelative ) {
 
-					_object[ property ] = {};
+    _isRelative = isRelative;
+    return this;
 
-				}
+  };
 
-				for ( nProperty in _object[ property ] ) {
+  this.start = function ( time ) {
+    if ( ! ( this in TWEEN.getAll() ) ) {
+      TWEEN.add( this );
+    }
 
-					_valuesStart[ property ][ nProperty ] = _object[ property ][ nProperty ];
+    _isPlaying = true;
+    _onStartCallbackFired = false;
 
-				}
+    _startTime = time !== undefined ? time : ( typeof window !== 'undefined' && window.performance !== undefined && window.performance.now !== undefined ? window.performance.now() : Date.now() );
+    _startTime += _delayTime;
+    _pauseDuration = 0;
 
-			}
-			else {
+    if (this.test) console.log("start tweener",_valuesStart, _object, _valuesEnd);
+    var endValue, nEndValue, objectValue, nObjectValue, property, nProperty, endValueType;
+    var allowedTypes = [ "number", "string", "object" ]; // type object is for objects, arrays and null
+    _accessorsByProperties = {};
 
-				_valuesStart[ property ] = _object[ property ];
+    // loop on _valuesEnd to fill _valuesStart and _valuesStartRepeat
+    // note : except for undefined object values, _object doesn't need to be filled or fixed because it will be updated from update().
+    for ( property in _valuesEnd ) {
 
-				if( valueType !== "array" && valueType !== "object" ) {
+      endValue = _valuesEnd[ property ];
+      endValueType = typeof endValue;
 
-					_valuesStart[ property ] *= 1.0; // Ensures we're using numbers, not strings
+      // discard null and not allowed types
+      if ( endValue === null || allowedTypes.indexOf( endValueType ) === -1 ) {
+        continue;
+      }
 
-				}
+      _setupDynamicProperty( property );
 
-			}
+      // check if an Array was provided as property value
+      if ( Array.isArray( endValueType ) ) {
+        if ( endValue.length === 0 ) {
+          continue;
+        }
 
-			_valuesStartRepeat[ property ] = _valuesStart[ property ] || 0;
+        // create a local copy of the Array with the start value at the front
+        _valuesEnd[ property ] = [ _getObjectValue( property ) || 0 ].concat( endValue );
+        _valuesStart[ property ] = _getObjectValue( property ) || 0;
 
-		}
+      }
+      else if ( endValueType === "object" ) { // never null or array at this point
 
-		console.log("start tweener end",_valuesStart, _object, _valuesEnd);
+        // create object in _valuesStart and _object if one don't exist yet
+        if ( _valuesStart[ property ] === undefined ) {
+          _valuesStart[ property ] = {};
+        }
+        objectValue = _getObjectValue( property );
+        if ( objectValue === undefined ) {
+          objectValue = {};
+          _setObjectValue( property, objectValue );
+        }
 
-		return this;
+        for ( nProperty in endValue ) {
+          
+          nEndValue = endValue[ nProperty ];
+          nObjectValue = objectValue[ nProperty ] || 0;
 
-	};
+          if ( Array.isArray( nEndValue ) ) {
 
-	this.stop = function () {
+            _valuesEnd[ property ][ nProperty ] = [ nObjectValue ].concat( nEndValue );
+            _valuesStart[ property ][ nProperty ] = nObjectValue;
 
-		if ( !_isPlaying ) {
-			return this;
-		}
+          }
+          else {
+            _valuesStart[ property ][ nProperty ] = parseFloat( nObjectValue );
+          }
+        }
 
-		TWEEN.remove( this );
-		_isPlaying = false;
+      }
+      else { // string or number
+        _valuesStart[ property ] = parseFloat( _getObjectValue( property ) ) || 0;  // ensure it is a number, and not a string
+      }
 
-		if ( _onStopCallback !== null ) {
+      _valuesStartRepeat[ property ] = _valuesStart[ property ];
 
-			_onStopCallback.call( _object );
+    }
+    
+    if (this.test) console.log("start tweener end",_valuesStart, _object, _valuesEnd);
 
-		}
+    return this;
 
-		_eventEmitter.emit( "onStop", _object );
+  };
 
-		this.stopChainedTweens();
-		return this;
+  this.pause = function () {
 
-	};
+    if ( _isPaused ) {
+      return;
+    }
 
-	this.pause = function () {
+    _isPaused = true;
 
-		if ( _isPaused ) {
-			return;
-		}
+    if ( _onPauseCallback !== null ) {
 
-		_isPaused = true;
+      _onPauseCallback.call( _object );
 
-		if ( _onPauseCallback !== null ) {
+    }
 
-			_onPauseCallback.call( _object );
+    return this;
 
-		}
+  };
 
-		_eventEmitter.emit( "onPause", _object );
+  this.isPaused = function () {
 
-		return this;
+    return _isPaused;
 
-	};
+  };
 
-	this.resume = function () {
+  this.resume = function () {
 
-		if ( !_isPaused ) {
-			return;
-		}
+    if ( !_isPaused ) {
+      return;
+    }
 
-		_isPaused = false;
+    _isPaused = false;
 
-		if ( _onResumeCallback !== null ) {
+    if ( _onResumeCallback !== null ) {
 
-			_onResumeCallback.call( _object );
+      _onResumeCallback.call( _object );
 
-		}
+    }
 
-		_eventEmitter.emit( "onResume", _object );
+    return this;
 
-		return this;
+  };
 
-	};
+  this.stop = function () {
 
-	this.stopChainedTweens = function () {
+    if ( !_isPlaying ) {
+      return this;
+    }
 
-		for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
+    TWEEN.remove( this );
+    _isPlaying = false;
 
-			_chainedTweens[ i ].stop();
+    if ( _onStopCallback !== null ) {
 
-		}
+      _onStopCallback.call( _object );
 
-	};
+    }
 
+    this.stopChainedTweens();
+    return this;
 
-	/**
-	* Return all chained tweens
-	* @returns {Array}
-	*/
-	this.getChainedTweens = function () {
+  };
 
-		return _chainedTweens;
+  this.destroy = function ( recurse ) {
+    
+    if ( _isPlaying === true ) {
 
-	};
+      TWEEN.remove( this );
+      _isPlaying = false;
 
-	/**
-	* Remove one or several chained tweens.
-	* @param {TWEEN.Tween} [tween] The tween to remove. If null or undefined, all chained tweens will be removed.
-	* @returns {boolean} True if at least one tween has been removed, false otherwise.
-	*/
-	this.removeChainedTweens = function ( tween ) {
+    }
 
-		if ( tween !== null || tween !== undefined ) {
-			
-			var index = _chainedTweens.indexOf( tween );
-			if ( index !== -1 ) {
+    this.stopChainedTweens();
 
-				_chainedTweens.splice( index, 1 );
-				return true;
+    if ( recurse === true ) {
 
-			}
+      for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
+        
+        _chainedTweens[ i ].destroy( true );
 
-			return false;
+      }
 
-		}
+    }
 
-		var count = _chainedTweens.length;
-		_chainedTweens = [];
-		return ( count > 0 );
+    _object = null;
+    _valuesStart = null;
+    _valuesEnd = null;
+    _valuesStartRepeat = null;
+    _chainedTweens = null;
+    _onStartCallback = null;
+    _onPauseCallback = null;
+    _onResumeCallback = null;
+    _onUpdateCallback = null;
+    _onCompleteCallback = null;
+    _onStopCallback = null;
+  };
 
-	};
+  this.stopChainedTweens = function () {
 
-	this.delay = function ( amount ) {
+    for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
 
-		_delayTime = amount;
-		return this;
+      _chainedTweens[ i ].stop();
 
-	};
+    }
 
-	this.repeat = function ( times ) {
+  };
 
-		_repeat = times;
-		return this;
 
-	};
+  /**
+  * Return all chained tweens
+  * @returns {Array}
+  */
+  this.getChainedTweens = function () {
 
-	this.yoyo = function( yoyo ) {
+    return _chainedTweens;
 
-		_yoyo = yoyo;
-		return this;
+  };
 
-	};
+  /**
+  * Remove one or several chained tweens.
+  * @param {TWEEN.Tween} [tween] The tween to remove. If null or undefined, all chained tweens will be removed.
+  * @returns {boolean} True if at least one tween has been removed, false otherwise.
+  */
+  this.removeChainedTweens = function ( tween ) {
 
+    if ( tween !== null || tween !== undefined ) {
+      
+      var index = _chainedTweens.indexOf( tween );
+      if ( index !== -1 ) {
 
-	this.easing = function ( easing ) {
+        _chainedTweens.splice( index, 1 );
+        return true;
 
-		_easingFunction = easing;
-		return this;
+      }
 
-	};
+      return false;
 
-	this.interpolation = function ( interpolation ) {
+    }
 
-		_interpolationFunction = interpolation;
-		return this;
+    var count = _chainedTweens.length;
+    _chainedTweens = [];
+    return ( count > 0 );
 
-	};
+  };
 
-	this.chain = function () {
+  this.delay = function ( amount ) {
 
-		_chainedTweens = arguments;
-		return this;
+    _delayTime = amount;
+    return this;
 
-	};
+  };
 
-	this.addListener = function( eventName, listener ) {
-		
-		_eventEmitter.addListener( eventName, listener );
+  this.repeat = function ( times ) {
 
-	};
+    _repeat = times;
+    return this;
 
-	this.on = function( eventName, listener ) {
+  };
 
-		if ( eventName in _callbackNames === false ) {
+  this.yoyo = function( yoyo ) {
 
-			// assume eventName is like "update" instead of "onUpdate"
-			eventName = "on" + eventName.charAt(0).toUpperCase() + eventName.slice(1);
+    _yoyo = yoyo;
+    return this;
 
-		}
+  };
 
-		this.addListener( eventName, listener );
+  this.easing = function ( easing ) {
 
-	};
+    _easingFunction = easing;
+    return this;
 
-	this.removeListener = function( eventName, listener ) {
-		
-		_eventEmitter.removeListener( eventName, listener );
+  };
 
-	};
+  this.interpolation = function ( interpolation ) {
 
-	this.off = function( eventName, listener ) {
+    _interpolationFunction = interpolation;
+    return this;
 
-		if ( eventName in _callbackNames === false ) {
+  };
 
-			eventName = "on" + eventName.charAt(0).toUpperCase() + eventName.slice(1);
-			
-		}
+  this.chain = function () {
 
-		this.removeListener( eventName, listener );
+    _chainedTweens = arguments;
+    return this;
 
-	};
+  };
 
-	this.onStart = function ( callback ) {
-		_onStartCallback = callback;
-		return this;
+  this.onStart = function ( callback ) {
+    _onStartCallback = callback;
+    return this;
 
-	};
+  };
 
-	this.onUpdate = function ( callback ) {
+  this.onUpdate = function ( callback ) {
 
-		_onUpdateCallback = callback;
-		return this;
+    _onUpdateCallback = callback;
+    return this;
 
-	};
+  };
 
-	this.onPause = function ( callback ) {
+  this.onPause = function ( callback ) {
 
-		_onPauseCallback = callback;
-		return this;
+    _onPauseCallback = callback;
+    return this;
 
-	};
+  };
 
-	this.onResume = function ( callback ) {
+  this.onResume = function ( callback ) {
 
-		_onResumeCallback = callback;
-		return this;
+    _onResumeCallback = callback;
+    return this;
 
-	};
+  };
 
-	this.onComplete = function ( callback ) {
+  this.onComplete = function ( callback ) {
 
-		_onCompleteCallback = callback;
-		return this;
+    _onCompleteCallback = callback;
+    return this;
 
-	};
+  };
 
-	this.onStop = function ( callback ) {
+  this.onStop = function ( callback ) {
 
-		_onStopCallback = callback;
-		return this;
+    _onStopCallback = callback;
+    return this;
 
-	};
+  };
 
-	// returns true when the tween must be kept in the list of tweens to update
-	this.update = function ( time ) {
-		// console.log("update tweener", time, this);
-		if ( _isPaused ) {
-			
-			if ( _pauseStartTime === 0 ) {
-				// first update after tween is paused
+  // returns true when the tween must be kept in the list of tweens to update
+  this.update = function ( time ) {
+     if (this.test) console.log("update tweener", time);
+    if ( _isPaused === true ) {
+      
+      if ( _pauseStartTime === 0 ) {
+        // first update after tween is paused
+        _pauseStartTime = time;
+      }
 
-				_pauseStartTime = time;
+      return true;
 
-			}
+    } 
+    else if ( _pauseStartTime > 0 ) {
+      // first update after tween is resumed
 
-			return true;
-		} 
-		else if ( _pauseStartTime > 0 ) {
-			// first update after tween is resumed
+      _pauseDuration += ( time - _pauseStartTime );
+      _pauseStartTime = 0;
+      return true;
 
-			_pauseDuration += ( time - _pauseStartTime );
-			_pauseStartTime = 0;
+    }
+    
+    if ( time < _startTime ) {
 
-			return true;
-		}
-		
+      return true;
 
-		if ( time < _startTime ) {
+    }
 
-			return true;
+    if ( _onStartCallbackFired === false ) {
 
-		}
+      if ( _onStartCallback !== null ) {
 
-		if ( _onStartCallbackFired === false ) {
+        _onStartCallback.call( _object );
 
-			if ( _onStartCallback !== null ) {
+      }
 
-				_onStartCallback.call( _object );
+      _onStartCallbackFired = true;
 
-			}
+    }
 
-			_eventEmitter.emit( "onStart", _object );
+    var elapsed = ( time - ( _startTime + _pauseDuration ) ) / _duration;
+    elapsed = elapsed > 1 ? 1 : elapsed;
 
-			_onStartCallbackFired = true;
+    var progression = _easingFunction( elapsed );
 
-		}
+    var getCurrentValue = function( start, end, endValueType ) {
 
-		var elapsed = ( time - ( _startTime + _pauseDuration ) ) / _duration;
-		elapsed = elapsed > 1 ? 1 : elapsed;
+      if ( _isRelative === true || endValueType === "string" ) {
+        // Parses relative end values with start as base (e.g.: +10, -3)
+        end = start + parseFloat( end, 10 );
+      }
+      
+      return start + ( end - start ) * progression;
 
-		var progression = _easingFunction( elapsed );
+    };
 
-		var getCurrentValue = function( start, end ) {
+    var property, nProperty, start, nStart, end, nEnd, valueType, nObject;
+    if (this.test) console.log("update tweener", _valuesStart, _object, _valuesEnd, progression, elapsed);
 
-			if ( typeof end === "string" ) {
+    for ( property in _valuesEnd ) {
 
-				// Parses relative end values with start as base (e.g.: +10, -3)
-				end = start + parseFloat( end, 10 );
+      start = _valuesStart[ property ] || 0; // ||0 shouldn't be necessary because we make sure the value is not undefined in start()
+      end = _valuesEnd[ property ];
+      valueType = typeof end;
+      if (this.test) console.log("update property", property, end, _object);
+      if ( Array.isArray( end ) ) {
+        _object[ property ] = _interpolationFunction( end, progression );
+      }
+      else if ( end !== null && valueType === "object") {
 
-			}
+        nObject = _getObjectValue( property ); // see comment below the for
 
-			if ( typeof end === "number" ) {
+        for ( nProperty in end ) {
 
-				// protect against non numeric properties.
-				return start + ( end - start ) * progression;
+          nStart = start[ nProperty ] || 0; // same comment for || 0 as above
+          // console.log("end", end, nProperty, end[ nProperty ]);
+          nEnd = end[ nProperty ];
 
-			}
+          if ( Array.isArray( nEnd ) ) {
+            nObject[ nProperty ] = _interpolationFunction( nEnd, progression );
+          }
+          else {
+            nObject[ nProperty ] = getCurrentValue( nStart, nEnd, typeof nEnd );
+          }
 
-		};
+          if (this.test) console.log( "object value", property, nProperty, nStart, _valuesStart, nEnd, _valuesEnd);
 
-		var property, nProperty, start, _start, end, valueType;
-		console.log("update tweener", _valuesStart, _object, _valuesEnd, progression, elapsed);
+        }
+        
+        if (this.test) console.log("set object value1", property, nObject, _object);
+        _setObjectValue( property, nObject );
+        // this is useful when getting/setting the property actually calls a getter/setter
+        // typically the getter returns a new object instance every time (like a Vector3)
+        // so updating the reference (nObject) doesn't actually update the data in the object
+        // unless the setter is called with the new value
 
-		for ( property in _valuesEnd ) {
+      }
+      else if ( valueType === "number" || valueType === "string" ) {
 
-			start = _valuesStart[ property ] || 0;
-			end = _valuesEnd[ property ];
-			valueType = typeof end;
+        _setObjectValue( property, getCurrentValue( start, end, valueType ) );
+        // no reason why start should be something other than a number
+        // will be set to null or NaN if start or end are of any other type than string or number
+        if (this.test) console.log( "num value", property, start, end, progression, getCurrentValue( start, end ));
 
-			if ( valueType === "array" ) {
+      }
 
-				_object[ property ] = _interpolationFunction( end, progression );
+    }
 
-			}
-			else if ( end !== null && valueType === "object") {
+    if (this.test) console.log("update tweener 2", _object);
 
-				for ( nProperty in end ) {
 
-					_start = start[ nProperty ] || 0;
-					// console.log("end", end, nProperty, end[ nProperty ]);
-					_end = end[ nProperty ];
-					_object[ property ][ nProperty ] = getCurrentValue( _start, _end );
-					console.log( "object value", property, nProperty, _start, _valuesStart, _end, _valuesEnd);
+    if ( _onUpdateCallback !== null ) {
 
-				}
-			}
-			else if ( valueType === "number" || valueType === "string" ) {
-				
-				_object[ property ] = getCurrentValue( start, end );
-				// will be set to null is start or end are of any other type than string or number
-				console.log( "num value", property, start, end, progression, getCurrentValue( start, end ));
-			}
+      _onUpdateCallback.call( _object, progression );
 
-		}
+    }
 
-		console.log("update tweener 2", _object);
+    if ( elapsed == 1 ) {
 
+      if ( _repeat > 0 ) {
 
-		if ( _onUpdateCallback !== null ) {
+        if( isFinite( _repeat ) ) {
+          _repeat--;
+        }
 
-			_onUpdateCallback.call( _object, progression );
+        if (this.test) console.log("before repeat", _valuesStart, _object, _valuesEnd, _isRelative);
+        // reassign starting values, restart by making startTime = now
+        // console.log( "repeat", _valuesStartRepeat, _valuesStart, _object, _valuesEnd );
+        for( property in _valuesStart ) {
 
-		}
+          // set startValue = currentValue if endValue (or whole tween) is relative
+          endValue = _valuesEnd[ property ];
+          endValueType = typeof endValue;
+          currentValue = _getObjectValue( property );
+          
+          if ( _yoyo ) {
+            
+            _valuesEnd[ property ] = _valuesStart[ property ];
+            _valuesStart[ property ] = currentValue;
 
-		_eventEmitter.emit( "onUpdate", _object, progression );
+            // if endValue/currentValue is an object, copy it so that _valuesStart doesn't keep a reference to currentValue which will be updated in start
+            if ( endValue !== null && Array.isArray( endValue ) === false && endValueType === "object" ) { 
 
-		if ( elapsed == 1 ) {
+              _valuesStart[ property ] = {};
+              for ( nProperty in endValue ) {
+                _valuesStart[ property ][ nProperty ] = currentValue[ nProperty ];
+              }
 
-			if ( _repeat > 0 ) {
+            }
 
-				if( isFinite( _repeat ) ) {
-					_repeat--;
-				}
+            if (this.test) console.log("property after yoyo", property, _valuesStart[ property ], _object[ property ], _valuesEnd[ property ]);
 
-				// reassign starting values, restart by making startTime = now
-				// console.log( "repeat", _valuesStartRepeat, _valuesStart, _object, _valuesEnd );
-				for( property in _valuesStart ) {
+          }
+          else { // not yoyo
 
-					value = _valuesEnd[ property ];
-					valueType = typeof value;
-					if ( valueType === "string" ) {
+            if ( ( _isRelative === true && endValueType === "number" ) || endValueType === "string" ) {
+              _valuesStart[ property ] = currentValue;
+              // if (this.test) console.log("update start value with current value", property, currentValue);
+            }
 
-						// _valuesStartRepeat[ property ] = _valuesStartRepeat[ property ] + parseFloat( _valuesEnd[ property ], 10 );
-						_valuesStart[ property ] = _object[ property ];
+            else if ( endValue !== null && Array.isArray( endValue ) === false && endValueType === "object" ) { 
 
-					}
-					else if ( value !== null && valueType === "object" ) {
+              for ( nProperty in endValue ) {
 
-						for ( nProperty in value ) {
+                var nEndValueType = typeof endValue[ nProperty ];
 
-							nValue = value[ nProperty ];
-							if ( typeof nValue === "string" ) {
+                if ( ( _isRelative === true && nEndValueType === "number" ) || nEndValueType === "string" ) {
 
-								_valuesStart[ property ][ nProperty ] = _object[ property ][ nProperty ];
+                  _valuesStart[ property ][ nProperty ] = currentValue[ nProperty ];
 
-							}
+                }
 
-						}
-					}
+              }
 
-					if ( _yoyo ) {
+            }
 
-						/*var tmp = _valuesStartRepeat[ property ];
-						_valuesStartRepeat[ property ] = _valuesEnd[ property ];
-						_valuesEnd[ property ] = tmp;*/
-						_valuesEnd[ property ] = _valuesStart[ property ];
-						_valuesStart[ property ] = _object[ property ];
+          }
+          // what about arrays ?
+          
+          if (this.test) console.log("property", property, _valuesStart[ property ], _object[ property ], _valuesEnd[ property ]);
 
-					}
+        }
+        if (this.test) console.log("after repeat", _valuesStart, _object, _valuesEnd);
+        
+        if ( _yoyo ) {
+          _isRelative = false;
+        }
 
-					// _valuesStart[ property ] = _valuesStartRepeat[ property ];
+        _startTime = time + _delayTime;
+        _pauseDuration = 0;
 
-				}
+        return true;
 
-				_startTime = time + _delayTime;
-				_pauseDuration = 0;
+      } else {
 
-				return true;
+        if ( _onCompleteCallback !== null ) {
 
-			} else {
+          _onCompleteCallback.call( _object );
 
-				if ( _onCompleteCallback !== null ) {
+        }
 
-					_onCompleteCallback.call( _object );
+        for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
 
-				}
+          _chainedTweens[ i ].start( time );
 
-				_eventEmitter.emit( "onComplete", _object );
+        }
 
-				for ( var i = 0, numChainedTweens = _chainedTweens.length; i < numChainedTweens; i++ ) {
+        return false;
 
-					_chainedTweens[ i ].start( time );
+      }
 
-				}
+    }
 
-				return false;
+    return true;
 
-			}
-
-		}
-
-		return true;
-
-	};
+  };
 
 };
 
 
 TWEEN.Easing = {
 
-	Linear: {
+  Linear: {
 
-		None: function ( k ) {
+    None: function ( k ) {
 
-			return k;
+      return k;
 
-		}
+    }
 
-	},
+  },
 
-	Quadratic: {
+  Quadratic: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			return k * k;
+      return k * k;
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			return k * ( 2 - k );
+      return k * ( 2 - k );
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			if ( ( k *= 2 ) < 1 ) return 0.5 * k * k;
-			return - 0.5 * ( --k * ( k - 2 ) - 1 );
+      if ( ( k *= 2 ) < 1 ) return 0.5 * k * k;
+      return - 0.5 * ( --k * ( k - 2 ) - 1 );
 
-		}
+    }
 
-	},
+  },
 
-	Cubic: {
+  Cubic: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			return k * k * k;
+      return k * k * k;
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			return --k * k * k + 1;
+      return --k * k * k + 1;
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k;
-			return 0.5 * ( ( k -= 2 ) * k * k + 2 );
+      if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k;
+      return 0.5 * ( ( k -= 2 ) * k * k + 2 );
 
-		}
+    }
 
-	},
+  },
 
-	Quartic: {
+  Quartic: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			return k * k * k * k;
+      return k * k * k * k;
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			return 1 - ( --k * k * k * k );
+      return 1 - ( --k * k * k * k );
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			if ( ( k *= 2 ) < 1) return 0.5 * k * k * k * k;
-			return - 0.5 * ( ( k -= 2 ) * k * k * k - 2 );
+      if ( ( k *= 2 ) < 1) return 0.5 * k * k * k * k;
+      return - 0.5 * ( ( k -= 2 ) * k * k * k - 2 );
 
-		}
+    }
 
-	},
+  },
 
-	Quintic: {
+  Quintic: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			return k * k * k * k * k;
+      return k * k * k * k * k;
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			return --k * k * k * k * k + 1;
+      return --k * k * k * k * k + 1;
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k * k * k;
-			return 0.5 * ( ( k -= 2 ) * k * k * k * k + 2 );
+      if ( ( k *= 2 ) < 1 ) return 0.5 * k * k * k * k * k;
+      return 0.5 * ( ( k -= 2 ) * k * k * k * k + 2 );
 
-		}
+    }
 
-	},
+  },
 
-	Sinusoidal: {
+  Sinusoidal: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			return 1 - Math.cos( k * Math.PI / 2 );
+      return 1 - Math.cos( k * Math.PI / 2 );
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			return Math.sin( k * Math.PI / 2 );
+      return Math.sin( k * Math.PI / 2 );
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			return 0.5 * ( 1 - Math.cos( Math.PI * k ) );
+      return 0.5 * ( 1 - Math.cos( Math.PI * k ) );
 
-		}
+    }
 
-	},
+  },
 
-	Exponential: {
+  Exponential: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			return k === 0 ? 0 : Math.pow( 1024, k - 1 );
+      return k === 0 ? 0 : Math.pow( 1024, k - 1 );
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			return k === 1 ? 1 : 1 - Math.pow( 2, - 10 * k );
+      return k === 1 ? 1 : 1 - Math.pow( 2, - 10 * k );
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			if ( k === 0 ) return 0;
-			if ( k === 1 ) return 1;
-			if ( ( k *= 2 ) < 1 ) return 0.5 * Math.pow( 1024, k - 1 );
-			return 0.5 * ( - Math.pow( 2, - 10 * ( k - 1 ) ) + 2 );
+      if ( k === 0 ) return 0;
+      if ( k === 1 ) return 1;
+      if ( ( k *= 2 ) < 1 ) return 0.5 * Math.pow( 1024, k - 1 );
+      return 0.5 * ( - Math.pow( 2, - 10 * ( k - 1 ) ) + 2 );
 
-		}
+    }
 
-	},
+  },
 
-	Circular: {
+  Circular: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			return 1 - Math.sqrt( 1 - k * k );
+      return 1 - Math.sqrt( 1 - k * k );
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			return Math.sqrt( 1 - ( --k * k ) );
+      return Math.sqrt( 1 - ( --k * k ) );
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			if ( ( k *= 2 ) < 1) return - 0.5 * ( Math.sqrt( 1 - k * k) - 1);
-			return 0.5 * ( Math.sqrt( 1 - ( k -= 2) * k) + 1);
+      if ( ( k *= 2 ) < 1) return - 0.5 * ( Math.sqrt( 1 - k * k) - 1);
+      return 0.5 * ( Math.sqrt( 1 - ( k -= 2) * k) + 1);
 
-		}
+    }
 
-	},
+  },
 
-	Elastic: {
+  Elastic: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			var s, a = 0.1, p = 0.4;
-			if ( k === 0 ) return 0;
-			if ( k === 1 ) return 1;
-			if ( !a || a < 1 ) { a = 1; s = p / 4; }
-			else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
-			return - ( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) );
+      var s, a = 0.1, p = 0.4;
+      if ( k === 0 ) return 0;
+      if ( k === 1 ) return 1;
+      if ( !a || a < 1 ) { a = 1; s = p / 4; }
+      else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
+      return - ( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) );
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			var s, a = 0.1, p = 0.4;
-			if ( k === 0 ) return 0;
-			if ( k === 1 ) return 1;
-			if ( !a || a < 1 ) { a = 1; s = p / 4; }
-			else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
-			return ( a * Math.pow( 2, - 10 * k) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) + 1 );
+      var s, a = 0.1, p = 0.4;
+      if ( k === 0 ) return 0;
+      if ( k === 1 ) return 1;
+      if ( !a || a < 1 ) { a = 1; s = p / 4; }
+      else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
+      return ( a * Math.pow( 2, - 10 * k) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) + 1 );
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			var s, a = 0.1, p = 0.4;
-			if ( k === 0 ) return 0;
-			if ( k === 1 ) return 1;
-			if ( !a || a < 1 ) { a = 1; s = p / 4; }
-			else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
-			if ( ( k *= 2 ) < 1 ) return - 0.5 * ( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) );
-			return a * Math.pow( 2, -10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) * 0.5 + 1;
+      var s, a = 0.1, p = 0.4;
+      if ( k === 0 ) return 0;
+      if ( k === 1 ) return 1;
+      if ( !a || a < 1 ) { a = 1; s = p / 4; }
+      else s = p * Math.asin( 1 / a ) / ( 2 * Math.PI );
+      if ( ( k *= 2 ) < 1 ) return - 0.5 * ( a * Math.pow( 2, 10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) );
+      return a * Math.pow( 2, -10 * ( k -= 1 ) ) * Math.sin( ( k - s ) * ( 2 * Math.PI ) / p ) * 0.5 + 1;
 
-		}
+    }
 
-	},
+  },
 
-	Back: {
+  Back: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			var s = 1.70158;
-			return k * k * ( ( s + 1 ) * k - s );
+      var s = 1.70158;
+      return k * k * ( ( s + 1 ) * k - s );
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			var s = 1.70158;
-			return --k * k * ( ( s + 1 ) * k + s ) + 1;
+      var s = 1.70158;
+      return --k * k * ( ( s + 1 ) * k + s ) + 1;
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			var s = 1.70158 * 1.525;
-			if ( ( k *= 2 ) < 1 ) return 0.5 * ( k * k * ( ( s + 1 ) * k - s ) );
-			return 0.5 * ( ( k -= 2 ) * k * ( ( s + 1 ) * k + s ) + 2 );
+      var s = 1.70158 * 1.525;
+      if ( ( k *= 2 ) < 1 ) return 0.5 * ( k * k * ( ( s + 1 ) * k - s ) );
+      return 0.5 * ( ( k -= 2 ) * k * ( ( s + 1 ) * k + s ) + 2 );
 
-		}
+    }
 
-	},
+  },
 
-	Bounce: {
+  Bounce: {
 
-		In: function ( k ) {
+    In: function ( k ) {
 
-			return 1 - TWEEN.Easing.Bounce.Out( 1 - k );
+      return 1 - TWEEN.Easing.Bounce.Out( 1 - k );
 
-		},
+    },
 
-		Out: function ( k ) {
+    Out: function ( k ) {
 
-			if ( k < ( 1 / 2.75 ) ) {
+      if ( k < ( 1 / 2.75 ) ) {
 
-				return 7.5625 * k * k;
+        return 7.5625 * k * k;
 
-			} else if ( k < ( 2 / 2.75 ) ) {
+      } else if ( k < ( 2 / 2.75 ) ) {
 
-				return 7.5625 * ( k -= ( 1.5 / 2.75 ) ) * k + 0.75;
+        return 7.5625 * ( k -= ( 1.5 / 2.75 ) ) * k + 0.75;
 
-			} else if ( k < ( 2.5 / 2.75 ) ) {
+      } else if ( k < ( 2.5 / 2.75 ) ) {
 
-				return 7.5625 * ( k -= ( 2.25 / 2.75 ) ) * k + 0.9375;
+        return 7.5625 * ( k -= ( 2.25 / 2.75 ) ) * k + 0.9375;
 
-			} else {
+      } else {
 
-				return 7.5625 * ( k -= ( 2.625 / 2.75 ) ) * k + 0.984375;
+        return 7.5625 * ( k -= ( 2.625 / 2.75 ) ) * k + 0.984375;
 
-			}
+      }
 
-		},
+    },
 
-		InOut: function ( k ) {
+    InOut: function ( k ) {
 
-			if ( k < 0.5 ) return TWEEN.Easing.Bounce.In( k * 2 ) * 0.5;
-			return TWEEN.Easing.Bounce.Out( k * 2 - 1 ) * 0.5 + 0.5;
+      if ( k < 0.5 ) return TWEEN.Easing.Bounce.In( k * 2 ) * 0.5;
+      return TWEEN.Easing.Bounce.Out( k * 2 - 1 ) * 0.5 + 0.5;
 
-		}
+    }
 
-	}
+  }
 
 };
 
 TWEEN.Interpolation = {
 
-	Linear: function ( v, k ) {
+  Linear: function ( v, k ) {
 
-		var m = v.length - 1, f = m * k, i = Math.floor( f ), fn = TWEEN.Interpolation.Utils.Linear;
+    var m = v.length - 1, f = m * k, i = Math.floor( f ), fn = TWEEN.Interpolation.Utils.Linear;
 
-		if ( k < 0 ) return fn( v[ 0 ], v[ 1 ], f );
-		if ( k > 1 ) return fn( v[ m ], v[ m - 1 ], m - f );
+    if ( k < 0 ) return fn( v[ 0 ], v[ 1 ], f );
+    if ( k > 1 ) return fn( v[ m ], v[ m - 1 ], m - f );
 
-		return fn( v[ i ], v[ i + 1 > m ? m : i + 1 ], f - i );
+    return fn( v[ i ], v[ i + 1 > m ? m : i + 1 ], f - i );
 
-	},
+  },
 
-	Bezier: function ( v, k ) {
+  Bezier: function ( v, k ) {
 
-		var b = 0, n = v.length - 1, pw = Math.pow, bn = TWEEN.Interpolation.Utils.Bernstein, i;
+    var b = 0, n = v.length - 1, pw = Math.pow, bn = TWEEN.Interpolation.Utils.Bernstein, i;
 
-		for ( i = 0; i <= n; i++ ) {
-			b += pw( 1 - k, n - i ) * pw( k, i ) * v[ i ] * bn( n, i );
-		}
+    for ( i = 0; i <= n; i++ ) {
+      b += pw( 1 - k, n - i ) * pw( k, i ) * v[ i ] * bn( n, i );
+    }
 
-		return b;
+    return b;
 
-	},
+  },
 
-	CatmullRom: function ( v, k ) {
+  CatmullRom: function ( v, k ) {
 
-		var m = v.length - 1, f = m * k, i = Math.floor( f ), fn = TWEEN.Interpolation.Utils.CatmullRom;
+    var m = v.length - 1, f = m * k, i = Math.floor( f ), fn = TWEEN.Interpolation.Utils.CatmullRom;
 
-		if ( v[ 0 ] === v[ m ] ) {
+    if ( v[ 0 ] === v[ m ] ) {
 
-			if ( k < 0 ) i = Math.floor( f = m * ( 1 + k ) );
+      if ( k < 0 ) i = Math.floor( f = m * ( 1 + k ) );
 
-			return fn( v[ ( i - 1 + m ) % m ], v[ i ], v[ ( i + 1 ) % m ], v[ ( i + 2 ) % m ], f - i );
+      return fn( v[ ( i - 1 + m ) % m ], v[ i ], v[ ( i + 1 ) % m ], v[ ( i + 2 ) % m ], f - i );
 
-		} else {
+    } else {
 
-			if ( k < 0 ) return v[ 0 ] - ( fn( v[ 0 ], v[ 0 ], v[ 1 ], v[ 1 ], -f ) - v[ 0 ] );
-			if ( k > 1 ) return v[ m ] - ( fn( v[ m ], v[ m ], v[ m - 1 ], v[ m - 1 ], f - m ) - v[ m ] );
+      if ( k < 0 ) return v[ 0 ] - ( fn( v[ 0 ], v[ 0 ], v[ 1 ], v[ 1 ], -f ) - v[ 0 ] );
+      if ( k > 1 ) return v[ m ] - ( fn( v[ m ], v[ m ], v[ m - 1 ], v[ m - 1 ], f - m ) - v[ m ] );
 
-			return fn( v[ i ? i - 1 : 0 ], v[ i ], v[ m < i + 1 ? m : i + 1 ], v[ m < i + 2 ? m : i + 2 ], f - i );
+      return fn( v[ i ? i - 1 : 0 ], v[ i ], v[ m < i + 1 ? m : i + 1 ], v[ m < i + 2 ? m : i + 2 ], f - i );
 
-		}
+    }
 
-	},
+  },
 
-	Utils: {
+  Utils: {
 
-		Linear: function ( p0, p1, t ) {
+    Linear: function ( p0, p1, t ) {
 
-			return ( p1 - p0 ) * t + p0;
+      return ( p1 - p0 ) * t + p0;
 
-		},
+    },
 
-		Bernstein: function ( n , i ) {
+    Bernstein: function ( n , i ) {
 
-			var fc = TWEEN.Interpolation.Utils.Factorial;
-			return fc( n ) / fc( i ) / fc( n - i );
+      var fc = TWEEN.Interpolation.Utils.Factorial;
+      return fc( n ) / fc( i ) / fc( n - i );
 
-		},
+    },
 
-		Factorial: ( function () {
+    Factorial: ( function () {
 
-			var a = [ 1 ];
+      var a = [ 1 ];
 
-			return function ( n ) {
+      return function ( n ) {
 
-				var s = 1, i;
-				if ( a[ n ] ) return a[ n ];
-				for ( i = n; i > 1; i-- ) s *= i;
-				return a[ n ] = s;
+        var s = 1, i;
+        if ( a[ n ] ) return a[ n ];
+        for ( i = n; i > 1; i-- ) s *= i;
+        return a[ n ] = s;
 
-			};
+      };
 
-		} )(),
+    } )(),
 
-		CatmullRom: function ( p0, p1, p2, p3, t ) {
+    CatmullRom: function ( p0, p1, p2, p3, t ) {
 
-			var v0 = ( p2 - p0 ) * 0.5, v1 = ( p3 - p1 ) * 0.5, t2 = t * t, t3 = t * t2;
-			return ( 2 * p1 - 2 * p2 + v0 + v1 ) * t3 + ( - 3 * p1 + 3 * p2 - 2 * v0 - v1 ) * t2 + v0 * t + p1;
+      var v0 = ( p2 - p0 ) * 0.5, v1 = ( p3 - p1 ) * 0.5, t2 = t * t, t3 = t * t2;
+      return ( 2 * p1 - 2 * p2 + v0 + v1 ) * t3 + ( - 3 * p1 + 3 * p2 - 2 * v0 - v1 ) * t2 + v0 * t + p1;
 
-		}
+    }
 
-	}
+  }
 
 };
 
 if(typeof module !== 'undefined' && module.exports) {
-	module.exports = TWEEN;
+  module.exports = TWEEN;
 }

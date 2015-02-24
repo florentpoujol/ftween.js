@@ -957,6 +957,258 @@
 				test.done();
 			},
 
+			"Test relative tween": function(test) {
+				var obj = { x: { y:0, z:5 }, a: 10 };
+				var t = new TWEEN.Tween( obj )
+				.to( { x: { y: 10, z: "-2" }, a: 50, b: "25" } )
+				.duration( 1000 )
+				.isRelative( true )
+				.start( 0 );
+
+				t.update( 100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, 4.8 );
+				test.equal( obj.a, 15 );
+				test.equal( obj.b, 2.5 );
+
+				t.update( 500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 4 );
+				test.equal( obj.a, 35 );
+				test.equal( obj.b, 12.5 );
+				
+				t.update( 1000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, 3 );
+				test.equal( obj.a, 60 );
+				test.equal( obj.b, 25 );
+
+				test.done();
+			},
+
+			"Test relative tween, repeat twice": function(test) {
+				var obj = { x: { y:0, z:5 }, a: 10 };
+				var t = new TWEEN.Tween( obj )
+				.to( { x: { y: 10, z: "-2" }, a: 50, b: "25" } )
+				.duration( 1000 )
+				.isRelative( true )
+				.repeat( 2 )
+				.start( 0 );
+
+				t.update( 100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, 4.8 );
+				test.equal( obj.a, 15 );
+				test.equal( obj.b, 2.5 );
+
+				t.update( 500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 4 );
+				test.equal( obj.a, 35 );
+				test.equal( obj.b, 12.5 );
+				
+				t.update( 1000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, 3 );
+				test.equal( obj.a, 60 );
+				test.equal( obj.b, 25 );
+
+
+				t.update( 1100 );
+				test.equal( obj.x.y, 11 );
+				test.equal( obj.x.z, 2.8 );
+				test.equal( obj.a, 65 );
+				test.equal( obj.b, 27.5 );
+
+				t.update( 1500 );
+				test.equal( obj.x.y, 15 );
+				test.equal( obj.x.z, 2 );
+				test.equal( obj.a, 85 );
+				test.equal( obj.b, 37.5 );
+				
+				t.update( 2000 );
+				test.equal( obj.x.y, 20 );
+				test.equal( obj.x.z, 1 );
+				test.equal( obj.a, 110 );
+				test.equal( obj.b, 50 );
+
+
+				t.update( 2100 );
+				test.equal( obj.x.y, 21 );
+				test.equal( obj.x.z, 0.8 );
+				test.equal( obj.a, 115 );
+				test.equal( obj.b, 52.5 );
+
+				t.update( 2500 );
+				test.equal( obj.x.y, 25 );
+				test.equal( obj.x.z, 0 );
+				test.equal( obj.a, 135 );
+				test.equal( obj.b, 62.5 );
+				
+				t.update( 3000 );
+				test.equal( obj.x.y, 30 );
+				test.equal( obj.x.z, -1 );
+				test.equal( obj.a, 160 );
+				test.equal( obj.b, 75 );
+
+				test.done();
+			},
+
+			"Test relative tween, repeat twice, with yoyo": function(test) {
+				var obj = { x: { y:0, z:5 }, a: 10 };
+				var t = new TWEEN.Tween( obj )
+				.to( { x: { y: 10, z: "-2" }, a: 50, b: "25" } )
+				.duration( 1000 )
+				.isRelative( true )
+				.yoyo( true )
+				.repeat( 2 )
+				.start( 0 );
+
+				t.update( 100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, 4.8 );
+				test.equal( obj.a, 15 );
+				test.equal( obj.b, 2.5 );
+
+				t.update( 500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 4 );
+				test.equal( obj.a, 35 );
+				test.equal( obj.b, 12.5 );
+				
+				t.update( 1000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, 3 );
+				test.equal( obj.a, 60 );
+				test.equal( obj.b, 25 );
+
+
+				t.update( 1100 );
+				test.equal( obj.x.y, 9 );
+				test.equal( obj.x.z, 3.2 );
+				test.equal( obj.a, 55 );
+				test.equal( obj.b, 22.5 );
+
+				t.update( 1500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 4 );
+				test.equal( obj.a, 35 );
+				test.equal( obj.b, 12.5 );
+				
+				t.update( 2000 );
+				test.equal( obj.x.y, 0 );
+				test.equal( obj.x.z, 5 );
+				test.equal( obj.a, 10 );
+				test.equal( obj.b, 0 );
+
+
+				t.update( 2100 );
+				test.equal( obj.x.y, 1 );
+				test.equal( obj.x.z, 4.8 );
+				test.equal( obj.a, 15 );
+				test.equal( obj.b, 2.5 );
+
+				t.update( 2500 );
+				test.equal( obj.x.y, 5 );
+				test.equal( obj.x.z, 4 );
+				test.equal( obj.a, 35 );
+				test.equal( obj.b, 12.5 );
+				
+				t.update( 3000 );
+				test.equal( obj.x.y, 10 );
+				test.equal( obj.x.z, 3 );
+				test.equal( obj.a, 60 );
+				test.equal( obj.b, 25 );
+
+				test.done();
+			},
+
+			"Test dynamic properties": function(test) {
+				var MyObject = function( position ) {
+					var _position = position || { x:0, y:0, z:0 };
+					this.getPosition = function() {
+						return _position;
+					};
+					this.setPosition = function( position ) {
+						_position = position;
+					};
+				};
+
+				var obj = new MyObject( { x:-5, y:-5, z:-5 } );
+
+				var t = new TWEEN.Tween()
+				.from( obj )
+				.to( { position: { x: 10, y: 5 } } )
+				.isRelative( true )
+				.duration( 1000 )
+				.start( 0 );
+
+				t.update( 100 );
+				var pos = obj.getPosition();
+				test.equal( pos.x, -4 );
+				test.equal( pos.y, -4.5 );
+				test.equal( pos.z, -5 );
+
+				t.update( 500 );
+				pos = obj.getPosition();
+
+				test.equal( pos.x, 0 );
+				test.equal( pos.y, -2.5 );
+				test.equal( pos.z, -5 );
+
+				t.update( 1000 );
+				pos = obj.getPosition();
+
+				test.equal( pos.x, 5 );
+				test.equal( pos.y, 0 );
+				test.equal( pos.z, -5 );
+
+				test.done();
+			},
+
+			"Test dynamic properties with prototype": function(test) {
+				var MyObject = function( position ) {
+					this._position = position || { x:0, y:0, z:0 };
+				};
+
+				MyObject.prototype.getPosition = function() {
+					return this._position;
+				};
+				MyObject.prototype.setPosition = function( position ) {
+					this._position = position;
+				};
+
+				var obj = new MyObject( { x:-5, y:-5, z:-5 } );
+
+				var t = new TWEEN.Tween()
+				.from( obj )
+				.to( { position: { x: 10, y: 5 } } )
+				.duration( 1000 )
+				.start( 0 );
+
+				t.update( 100 );
+				var pos = obj.getPosition();
+				test.equal( pos.x, -3.5 );
+				test.equal( pos.y, -4 );
+				test.equal( pos.z, -5 );
+
+				t.update( 500 );
+				pos = obj.getPosition();
+
+				test.equal( pos.x, 2.5 );
+				test.equal( pos.y, 0 );
+				test.equal( pos.z, -5 );
+
+				t.update( 1000 );
+				pos = obj.getPosition();
+
+				test.equal( pos.x, 10 );
+				test.equal( pos.y, 5 );
+				test.equal( pos.z, -5 );
+
+				test.done();
+			},
+
 		};
 
 		return tests;
