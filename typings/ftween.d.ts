@@ -51,7 +51,7 @@ declare module FTWEEN {
     (progression:number): void;
   }
   export interface LoopCompleteCallback {
-    (repeatsLeft:number): void;
+    (remainingLoops:number): void;
   }
 
   export interface EasingFunction {

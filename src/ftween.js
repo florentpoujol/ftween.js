@@ -644,7 +644,7 @@ FTWEEN.Tween = function ( object ) {
 
         if ( _onLoopCompleteCallback !== null ) {
 
-          _onLoopCompleteCallback.call( _object, _repeat );
+          _onLoopCompleteCallback.call( _object, _repeat + 1 ); // pass the number of loops left to run
 
         }
 

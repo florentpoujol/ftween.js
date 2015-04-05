@@ -24,7 +24,7 @@ The following functionalities have been added:
 
 - `duration()` function. The duration can still be passed as the second argument of `to()`.
 
-- `onLoopComplete()` function and callback. The callback is called every times the tween completes while `repeat >= 1`, passing the number of repeats left as first argument.
+- `onLoopComplete()` function and callback. The callback is called every times the tween completes while `repeat >= 1`, passing the number of remaining loops the tween has to run as first argument. The last time the tween runs, the `onComplete` callback is called instead of `onLoopComplete`.
 
 ```javascript
 	var MyObject = function( position ) {
