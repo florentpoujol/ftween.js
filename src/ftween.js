@@ -24,8 +24,6 @@ var FTWEEN = FTWEEN || ( function () {
 
 	return {
 
-		REVISION: '1',
-
 		getAll: function () {
 
 			return _tweens;
