@@ -1,30 +1,23 @@
 {
-  "name": "superpowers-tween.js",
+  "name": "ftween.js",
   "version": "0.1.0",
-  "description": "Super simple, fast and easy to use tweening engine which incorporates optimised Robert Penner's equations.",
-  "main": "src/Tween.js",
-  "homepage": "https://github.com/florentpoujol/tween.js",
+  "description": "A fork of tween.js , Super simple, fast and easy to use tweening engine which incorporates optimised Robert Penner's equations.",
+  "main": "src/ftween.js",
+  "homepage": "https://github.com/florentpoujol/ftween.js",
   "repository": {
     "type": "git",
-    "url": "git://github.com/florentpoujol/tween.js.git"
+    "url": "git://github.com/florentpoujol/ftween.js.git"
   },
   "bugs": {
-    "url": "https://github.com/florentpoujol/tween.js/issues"
+    "url": "https://github.com/florentpoujol/ftween.js/issues"
   },
-  "licenses": [
-    {
-      "type": "MIT",
-      "url": "https://github.com/florentpoujol/tween.js/blob/master/LICENSE"
-    }
-  ],
   "keywords": [
     "tween",
-    "interpolation"
+    "interpolation",
+    "superpowers"
   ],
   "dependencies": {
     "gulp": "^3.8.7",
-    "gulp-concat": "^2.3.4",
-    "gulp-html-replace": "^1.1.0",
     "gulp-insert": "^0.4.0",
     "gulp-jshint": "^1.8.3",
     "gulp-rename": "^1.2.0",
@@ -32,6 +25,13 @@
     "nodeunit": "^0.9.0"
   },
   "scripts": {
-    "test": "node_modules/.bin/nodeunit $(pwd)/test/unit/nodeunitheadless.js"
-  }
+    "test": "nodeunit test/unit/nodeunitheadless.js",
+    "build": "gulp build"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "devDependencies": {},
+  "author": "Florent Poujol <florent.poujol@gmail.com> (http://florentpoujol.fr)",
+  "license": "MIT"
 }

@@ -1,4 +1,2 @@
-.DS_Store
-build/npm*
-node_modules
-GitIgnore/
+node_modules/
+gitignore/
