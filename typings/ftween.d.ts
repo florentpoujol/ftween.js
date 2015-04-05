@@ -38,6 +38,7 @@ declare module FTWEEN {
     onUpdate(callback?:UpdateCallback): Tween;
     onPause(callback?:Callback): Tween;
     onResume(callback?:Callback): Tween;
+    onLoopComplete(callback?:LoopCompleteCallback): Tween;
     onComplete(callback?:Callback): Tween;
     onStop(callback?:Callback): Tween;
     update(time:number): boolean;
@@ -48,6 +49,9 @@ declare module FTWEEN {
   }
   export interface UpdateCallback {
     (progression:number): void;
+  }
+  export interface LoopCompleteCallback {
+    (repeatsLeft:number): void;
   }
 
   export interface EasingFunction {

@@ -24,6 +24,8 @@ The following functionalities have been added:
 
 - `duration()` function. The duration can still be passed as the second argument of `to()`.
 
+- `onLoopComplete()` function and callback. The callback is called every times the tween completes while `repeat >= 1`, passing the number of repeats left as first argument.
+
 ```javascript
 	var MyObject = function( position ) {
 		var _position = position || { x:0, y:0, z:0 };
@@ -38,7 +40,7 @@ The following functionalities have been added:
 
 	var myInstance = new MyObject( { x:-5, y:-5, z:-5 } );
 
-	var tween = new SUPTWEEN.Tween( myInstance )
+	var tween = new FTWEEN.Tween( myInstance )
 	.to( { position: { x: 10, y: 5 } } )
 	.isRelative( true )
 	.duration( 5000 )
@@ -60,6 +62,6 @@ From npm:
 
 Then from your code: 
 
-	var SUPTWEEN = require("ftween.js");
+	var FTWEEN = require("ftween.js");
 
 Or get the development and minified files from the `src` and `build` folder.
